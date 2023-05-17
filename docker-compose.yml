@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  rabbit:
+    image: "rabbitmq:3-management"
+    volumes:
+    - ./data/rabbit:/var/lib/rabbit/data
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin1
+    container_name: "rabbitmq"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+  backend:
+    build:
+      context: .
+      dockerfile: ./docker/django/Dockerfile
+    command: 'python manage.py runserver 0.0.0.0:8000'
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/app
+    image: app:django
+    depends_on:
+      - db
+      - rabbit
+  queue:
+    build:
+      context: .
+      dockerfile: ./docker/django/Dockerfile
+    command: ["python", "consumer.py"]
+    depends_on:
+      - db
+
+  db:
+    image: postgres
+    volumes:
+    - ./data/db:/var/lib/postgressql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    container_name: postgres_db
+    # image: mysql:5.7
+    # environment:
+    #   MYSQL_DATABASE: 'django-app-db'
+    #   MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+    # volumes:
+    #   - ./data/mysql/db:/var/lib/mysql
+
